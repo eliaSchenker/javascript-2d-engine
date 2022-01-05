@@ -6,7 +6,7 @@ This readme explains how to use the Renderer.
 ## Integrating the Render engine
 To add the render engine to your site, simple copy the script in the same folder and add it using a script tag:
 ```html
-    <script src="Renderer.js" type="text/javascript"></script>
+<script src="Renderer.js" type="text/javascript"></script>
 ```
 
 ## Creating the Renderer object
@@ -106,7 +106,7 @@ These events include
     <li>Mouse up event</li>
 </ul>
 Use the addInteractionEvents function on a renderobject to add the events in the following order: onClickEvent, onMouseDragEvent, onMouseUpEvent.<br>If you don't want to use any of the events, simply pass it as undefined<br>
-You must bind the function with "this" so that the variables in the function are read out of the right context (more info on bind: <a href="https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Function/bind">Mozilla Developer Wiki</a>)<br>
+You must bind the function with "this" so that the variables in the function are read out of the right context (more info on bind: <a href="https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Function/bind" target="_blank">Mozilla Developer Wiki</a>)<br>
 The mouse position of the click, drag or up event will always be passed by the function.<br><br>
 Here is an example of adding a drag event to a circle:
 
@@ -127,7 +127,7 @@ renderer.toRenderObjects.push(circleObject);
 
 ## Examples
 An example can be found in the example.html file.<br>
-Here are some simulations which use this library: <a href="https://eliaschenker.com/physics-simulations">Simulations</a>
+Here are some simulations which use this library: <a href="https://eliaschenker.com/physics-simulations" target="_blank">Simulations</a>
 
 <br><br>
 &copy; Elia Schenker 2021
