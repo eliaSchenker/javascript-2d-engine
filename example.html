@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example</title>
+</head>
+<body onload="initRenderer();render_objects();">
+    <canvas id="canvas" width=700 height=700 style="border:solid 2px black"></canvas>
+</body>
+<script src="Renderer.js"></script>
+<script>
+    let renderer;
+    function initRenderer() {
+        let canvas = document.getElementById("canvas");
+        //Create the renderer by passing the canvas, the camera X Size and the camera Y Size
+        renderer = new Renderer(canvas, 10, 10);
+        renderer.zoomAmount = 2; //Zoom out a little
+    }
+
+    function render_objects() {
+        renderer.reset_render_objects();
+        /* Circle has a radius of 5, a position of (0, 0), a color of "#FF0000" and is filled (true) */
+        renderer.toRenderObjects.push(new CircleRenderObject(5, new Vector2(0, 0), "#FF0000", true));
+
+        //Render a rectangle
+        /* The rectangles bottom left position is (0, 0), it's width is 10, it's height is 5, it has a color of "#0000FF" and is not filled (false) */
+        renderer.toRenderObjects.push(new RectRenderObject(new Vector2(0, 0), new Vector2(10, 5), "#0000FF", false));
+
+        //Render a line
+        /* The lines has a start position of (0, 0) an end position of (2, 2), a width of 1 and a color of "#000000" */
+        renderer.toRenderObjects.push(new LineRenderObject(new Vector2(0, 0), new Vector2(-2, 2), 1, "#000000"));
+
+        //Render an arrow
+        /* The arrow has a start position of (2, 2), an end position of (4,4) and a color of "#00FFFF" */
+        renderer.toRenderObjects.push(new ArrowRenderObject(new Vector2(2, 2), new Vector2(4,4), "#00FFFF"));
+
+        //Render a polygon (takes an array of positions instead of just one)
+        /* The polygon has the following positions: (-2, -2), (-4, -2), (-5, -3) and is  filled (true) and has a color of "#FFFF00"*/
+        renderer.toRenderObjects.push(new PolygonRenderObject([new Vector2(-2, -2), new Vector2(-4, -2,), new Vector2(-5, -3)], false, "#FFFF00"));
+
+        //Render a text
+        /* The text has a font-size of 25px and a font of Arial, it says "Hello World", is aligned to the left and has a color of "#000000" */
+        renderer.toRenderObjects.push(new TextRenderObject("25px Arial", "Hello World", "left", "#000000"));
+        
+        let circleObject = new CircleRenderObject(2, new Vector2(-5, 5), "#000000", true);
+        
+        //Add an interaction event to the circle, which lets the user drag it
+        circleObject.addInteractionEvents(undefined, (function(e) {
+            circleObject.position = e;
+            renderer.render_frame();
+        }).bind(this));
+
+        renderer.toRenderObjects.push(circleObject);
+
+        renderer.render_frame();
+    }
+</script>
+</html>
