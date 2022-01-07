@@ -1,6 +1,6 @@
 # 2D Javascript Render Engine
 The 2D Javascript Render Engine makes drawing on the canvas easy.<br>
-It also makes converting from world space to canvas space really easy.<br>
+It also allows the drawing of huge distances and big objects.<br>
 This readme explains how to use the Renderer.
 
 ## Integrating the Render engine
@@ -23,6 +23,7 @@ When initializing the Renderer object you must pass the camera size are the dime
 renderer.cameraXSize = 10; //The X-Size of the camera
 renderer.cameraYSize = 10; //The Y-Size of the camera
 renderer.cameraPosition = new Vector2(0, 0); //Set the position of the camera
+renderer.zoomAmount = 2; //Zoom amount of the camera
 ```
 The user is able to interact with the camera (zooming, and dragging)
 
