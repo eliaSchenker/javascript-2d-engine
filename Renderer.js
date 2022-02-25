@@ -19,9 +19,18 @@ class Renderer {
         this.cameraXSize = cameraXSize;
         this.cameraYSize = cameraYSize;
         this.isDragging = true;
+
+        this.cameraInteractable = true;
+        this.uiInteractable = true;
+        this.objectsInteractable = true;
+
         this.zoomAmount = 1;
+        //Avoid double click selecting text on the page
+        canvas.onselectstart = function() { return false; }
         this.canDrag = true;
-        this.lastFrameDraw = undefined;
+        this.debug_draw_colliders = false;
+        this.lastFrameDraw = new Date();
+        this.globalMouseUpEvent = undefined;
         this.prepareDragEvent();
         this.prepareScrollEvent();
     }
@@ -42,7 +51,7 @@ class Renderer {
      */
     render_frame() {
         //Prevent the next frame from being drawn if 25 milliseconds haven't passed since the last frame drawn
-        if(this.lastFrameDraw != undefined && new Date() - this.lastFrameDraw < 25) {
+        if(new Date() - this.lastFrameDraw < 25) {
             return;
         }
         this.clear_frame();
@@ -50,6 +59,11 @@ class Renderer {
         //Draw the objects
         for(let i = 0;i<this.toRenderObjects.length;i++) {
             this.toRenderObjects[i].draw(this.ctx, this);
+            if(this.debug_draw_colliders) {
+                let collisionRect =  this.toRenderObjects[i].getCollisionRect(this.ctx, this);
+                collisionRect = [this.canvasToWorldPosition(collisionRect[0]), this.canvasToWorldPosition(collisionRect[1]), this.canvasToWorldPosition(collisionRect[2]), this.canvasToWorldPosition(collisionRect[3])]
+                new PolygonRenderObject(collisionRect, false, "#FF0000").draw(this.ctx, this);
+            }
         }
 
         //Draw the UI
@@ -173,6 +187,9 @@ class Renderer {
      * @param {*} e Eventdata
      */
     onscrollwheel(e) {
+        if(!this.cameraInteractable) {
+            return;
+        }
         e.preventDefault();
         if(e.deltaY > 0) {
             this.zoomAmount += 0.01;
@@ -190,7 +207,7 @@ class Renderer {
      * @returns 
      */
     getEventCoordinates(e) {
-        if(e instanceof TouchEvent) {
+        if(window.TouchEvent && e instanceof TouchEvent) {
             e.preventDefault();
             return new Vector2(e.targetTouches[0].pageX, e.targetTouches[0].pageY);
         }else {
@@ -216,8 +233,9 @@ class Renderer {
       this.currentDragObject = this.getObjectsUnderMouse(this.originalX, this.originalY);
       //If the currentDragObject exists and its onClickEvent is not undefined, call it
       if(this.currentDragObject != undefined && this.currentDragObject.onClickEvent != undefined) {
-        this.currentDragObject.onClickEvent(this.canvasToWorldPosition(new Vector2(this.originalX, this.originalY)));
-        this.render_frame();
+          if(this.objectsInteractable) {
+            this.currentDragObject.onClickEvent(this.canvasToWorldPosition(new Vector2(this.originalX, this.originalY)));
+          }
       }
     }
 
@@ -238,14 +256,17 @@ class Renderer {
 
         //If the currentDragObject is either undefined or doesn't have a dragEvent, move the camera
         if(this.currentDragObject == undefined || this.currentDragObject.onDragEvent == undefined) {
-            //Calculate the new camera position by adding the distance to the originalCameraPosition and accounting for the width of the canvas, the cameraXSize and the zoomAmount
-            this.cameraPosition = new Vector2(this.originalCameraPosition.x + distance1 / this.canvas.width * this.cameraXSize * this.zoomAmount, 
-                this.originalCameraPosition.y - distance2 / this.canvas.height * this.cameraYSize * this.zoomAmount);
-            this.render_frame();
+            if(this.cameraInteractable) {
+                //Calculate the new camera position by adding the distance to the originalCameraPosition and accounting for the width of the canvas, the cameraXSize and the zoomAmount
+                this.cameraPosition = new Vector2(this.originalCameraPosition.x + distance1 / this.canvas.width * this.cameraXSize * this.zoomAmount, 
+                    this.originalCameraPosition.y - distance2 / this.canvas.height * this.cameraYSize * this.zoomAmount);
+                this.render_frame();
+            }
         }else {
-            //If it does exist and has a dragEvent, call the event
-            this.currentDragObject.onDragEvent(this.canvasToWorldPosition(new Vector2(x, y)));
-            this.render_frame();    
+            if(this.objectsInteractable) {
+                //If it does exist and has a dragEvent, call the event
+                this.currentDragObject.onDragEvent(this.canvasToWorldPosition(new Vector2(x, y)));
+            }
         }
       }
     }
@@ -260,7 +281,7 @@ class Renderer {
         //Iterate through all the render objects
         for (let i = 0; i < this.toRenderObjects.length; i++) {
             //If the the object has a click or a drag event check if the mouse in its collider
-            if(this.toRenderObjects[i].onClickEvent != undefined || this.toRenderObjects[i].onDragEvent != undefined) {
+            if(this.toRenderObjects[i].onClickEvent != undefined || this.toRenderObjects[i].onDragEvent != undefined || this.toRenderObjects[i].onMouseOverUpEvent != undefined) {
                 //Get the collider by using the getCollisionRect function of the object
                 let collider = this.toRenderObjects[i].getCollisionRect(this.ctx, this);
                 //If the mouse position is in the collision rectangle return the renderObject
@@ -278,6 +299,9 @@ class Renderer {
      * @param {Number} mouseY 
      */
     checkUIClickEvents(mouseX, mouseY) {
+        if(!this.uiInteractable) {
+            return;
+        }
         for(var i = 0;i<this.toRenderUI.length;i++) {
             if(this.toRenderUI[i] instanceof UIButton) {
                 let collider = this.toRenderUI[i].getCollisionRect(this.ctx, this);
@@ -300,16 +324,27 @@ class Renderer {
     onmouseup(e) {
       this.isDragging = false;
 
+      let coords = this.getEventCoordinates(e);
+      let x = coords.x - this.canvas.offsetLeft;
+      let y = coords.y - this.canvas.offsetTop;
       if(this.currentDragObject != undefined) {
-          if(this.currentDragObject.onMouseUpEvent != undefined) {
-            let coords = this.getEventCoordinates(e);
-            let x = coords.x - this.canvas.offsetLeft;
-            let y = coords.y - this.canvas.offsetTop;
+        if(this.currentDragObject.onMouseUpEvent != undefined) {
+            if(this.objectsInteractable) {
+                this.currentDragObject.onMouseUpEvent(this.canvasToWorldPosition(new Vector2(x, y)));
+            }
+        }
+        this.currentDragObject = undefined;
+      }
+      
+      let mouseUpOverEventObject = this.getObjectsUnderMouse(x, y);
+      if(mouseUpOverEventObject != undefined && mouseUpOverEventObject.onMouseOverUpEvent != undefined) {
+        if(this.objectsInteractable) {
+          mouseUpOverEventObject.onMouseOverUpEvent(new Vector2(x, y));
+        }
+      }
 
-            this.currentDragObject.onMouseUpEvent(this.canvasToWorldPosition(new Vector2(x, y)));
-            this.render_frame();
-          }
-          this.currentDragObject = undefined;
+      if(this.globalMouseUpEvent != undefined) {
+        this.globalMouseUpEvent();
       }
     }
 
@@ -356,10 +391,11 @@ class RenderObject {
         this.color = color;
     }
 
-    addInteractionEvents(onClickEvent=undefined, onDragEvent=undefined, onMouseUpEvent=undefined) {
+    addInteractionEvents(onClickEvent=undefined, onDragEvent=undefined, onMouseUpEvent=undefined, onMouseOverUpEvent=undefined) {
         this.onClickEvent = onClickEvent;
         this.onDragEvent = onDragEvent;
         this.onMouseUpEvent = onMouseUpEvent;
+        this.onMouseOverUpEvent = onMouseOverUpEvent;
     }
 }
 
@@ -372,7 +408,6 @@ class TextRenderObject extends RenderObject{
      * @param {String} font The font of the text
      * @param {String} text The text to draw
      * @param {Vector2} position The position of the text
-     * @param {String} textAlignment The aligment of the text (left|right|center|justify|initial|inherit)
      * @param {String} color The color of the text (optional)
      */
     constructor(font, text, position, textAlignment="left", color="#000000") {
@@ -577,6 +612,17 @@ class LineRenderObject extends RenderObject {
         ctx.lineTo(canvasEndPosition.x, canvasEndPosition.y);
         ctx.stroke();
         ctx.lineWidth = originalLineWidth;
+    }
+
+    getCollisionRect(ctx, rendererReference) {
+        let bottomLeftCollider = this.position.moveAtAngle(Math.PI / 2, this.lineWidth / 2);
+        let bottomRightCollider = this.position.moveAtAngle(-Math.PI / 2, this.lineWidth / 2);
+        let topLeftCollider = this.endPosition.moveAtAngle(Math.PI / 2, this.lineWidth / 2);
+        let topRightCollider = this.endPosition.moveAtAngle(-Math.PI / 2, this.lineWidth / 2);
+        return [rendererReference.worldToCanvasPosition(bottomLeftCollider), 
+            rendererReference.worldToCanvasPosition(bottomRightCollider),
+            rendererReference.worldToCanvasPosition(topRightCollider),
+            rendererReference.worldToCanvasPosition(topLeftCollider)];
     }
 }
 
