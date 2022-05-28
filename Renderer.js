@@ -29,7 +29,7 @@ class Renderer {
         canvas.onselectstart = function() { return false; }
         this.canDrag = true;
         this.debug_draw_colliders = false;
-        this.lastFrameDraw = new Date();
+        this.lastFrameDraw = undefined;
         this.globalMouseUpEvent = undefined;
         this.prepareDragEvent();
         this.prepareScrollEvent();
@@ -51,7 +51,7 @@ class Renderer {
      */
     render_frame() {
         //Prevent the next frame from being drawn if 25 milliseconds haven't passed since the last frame drawn
-        if(new Date() - this.lastFrameDraw < 25) {
+        if(this.lastFrameDraw != undefined && new Date() - this.lastFrameDraw < 25) {
             return;
         }
         this.clear_frame();
